@@ -9,15 +9,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.UnavailableSecurityManagerException;
+import org.apache.shiro.subject.Subject;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
-import com.thinkgem.jeesite.modules.cms.dao.CategoryDao;
-import com.thinkgem.jeesite.modules.cms.entity.Category;
+import com.google.common.collect.Maps;
 import com.thinkgem.jeesite.modules.sys.dao.AreaDao;
 import com.thinkgem.jeesite.modules.sys.dao.MenuDao;
 import com.thinkgem.jeesite.modules.sys.dao.OfficeDao;
@@ -31,7 +30,7 @@ import com.thinkgem.jeesite.modules.sys.security.SystemRealm.Principal;
 /**
  * 用户工具类
  * @author ThinkGem
- * @version 2013-01-15
+ * @version 2013-4-21
  */
 @Service
 public class UserUtils implements ApplicationContextAware {
@@ -40,7 +39,6 @@ public class UserUtils implements ApplicationContextAware {
 	private static MenuDao menuDao;
 	private static AreaDao areaDao;
 	private static OfficeDao officeDao;
-	private static CategoryDao categoryDao;
 	
 	public static User getUser(){
 		User user = (User)getCache("user");
@@ -110,47 +108,23 @@ public class UserUtils implements ApplicationContextAware {
 		return officeList;
 	}
 	
-	public static List<Category> getCategoryList(){
-		@SuppressWarnings("unchecked")
-		List<Category> categoryList = (List<Category>)getCache("categoryList");
-		if (categoryList == null){
-			User user = getUser();
-			if (user.isAdmin()){
-				categoryList = categoryDao.findAllList();
-			}else{
-				categoryList = categoryDao.findByUserId(user.getId());
-			}
-			putCache("categoryList", categoryList);
-		}
-		return categoryList;
-	}
-	
-	public static List<Category> getCategoryListByModule(String module){
-		List<Category> list = Lists.newArrayList();
-		if (StringUtils.isNotBlank(module)){
-			for (Category category : getCategoryList()){
-				if (module.equals(category.getModule()) || "".equals(category.getModule())){
-					list.add(category);
-				}
-			}
-		}
-		return list;
-	}
-	
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext){
 		userDao = (UserDao)applicationContext.getBean("userDao");
 		menuDao = (MenuDao)applicationContext.getBean("menuDao");
 		areaDao = (AreaDao)applicationContext.getBean("areaDao");
 		officeDao = (OfficeDao)applicationContext.getBean("officeDao");
-		categoryDao = (CategoryDao)applicationContext.getBean("categoryDao");
 	}
 	
 	// ============== User Cache ==============
 	
 	public static Object getCache(String key) {
+		return getCache(key, null);
+	}
+	
+	public static Object getCache(String key, Object defaultValue) {
 		Object obj = getCacheMap().get(key);
-		return obj==null?null:obj;
+		return obj==defaultValue?defaultValue:obj;
 	}
 
 	public static void putCache(String key, Object value) {
@@ -162,7 +136,13 @@ public class UserUtils implements ApplicationContextAware {
 	}
 	
 	private static Map<String, Object> getCacheMap(){
-		Principal principal = (Principal)SecurityUtils.getSubject().getPrincipal();
-		return principal!=null?principal.getCacheMap():new HashMap<String, Object>();
+		Map<String, Object> map = Maps.newHashMap();
+		try{
+			Subject subject = SecurityUtils.getSubject();
+			Principal principal = (Principal)subject.getPrincipal();
+			return principal!=null?principal.getCacheMap():map;
+		}catch (UnavailableSecurityManagerException e) {
+			return map;
+		}
 	}
 }

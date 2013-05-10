@@ -22,7 +22,7 @@
 		<sitemesh.version>2.4.2</sitemesh.version>
 		<shiro.version>1.2.1</shiro.version>
 		<ehcache.version>2.6.5</ehcache.version>
-		<hibernate-validator.version>4.3.1.Final</hibernate-validator.version>
+		<hibernate-validator.version>5.0.1.Final</hibernate-validator.version>
 		<jackson.version>2.1.4</jackson.version>
 		<slf4j.version>1.7.2</slf4j.version>
 		<log4j.version>1.2.17</log4j.version>
@@ -32,6 +32,7 @@
 		<dozer.version>5.3.2</dozer.version>
 		<poi.version>3.9</poi.version>
 		<freemarker.version>2.3.19</freemarker.version>
+		<activiti.version>5.12.1</activiti.version>
 		
 		<!-- Jdbc -->
 		<jdbc.driver.groupId>mysql</jdbc.driver.groupId>
@@ -48,7 +49,7 @@
 		
 		<!-- Plugin -->
 		<jdk.version>1.6</jdk.version>
-		<jetty.version>7.6.9.v20130131</jetty.version>
+		<jetty.version>7.6.10.v20130312</jetty.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		
 	</properties>
@@ -62,7 +63,10 @@
 			<name>Team Nexus Repository</name>
 			<url>http://localhost:8081/nexus/content/groups/public</url> 
 		</repository>-->
-		
+		<repository>
+			<id>Activiti</id>
+			<url>https://maven.alfresco.com/nexus/content/groups/public</url>
+		</repository>
 		<repository>
 			<id>central</id>
 			<name>Central Repository</name>
@@ -100,7 +104,17 @@
 	
 	<!-- 依赖项定义 -->
 	<dependencies>
-	
+		<!-- Activiti -->
+		<dependency>
+			<groupId>org.activiti</groupId>
+			<artifactId>activiti-engine</artifactId>
+			<version>${activiti.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.activiti</groupId>
+			<artifactId>activiti-spring</artifactId>
+			<version>${activiti.version}</version>
+		</dependency>
 		<!-- SPRING begin -->
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -213,8 +227,6 @@
 			<artifactId>hibernate-ehcache</artifactId>
 			<version>${hibernate.version}</version>
 		</dependency>
-		
-		<!-- hibernate search -->
 		<dependency>
 		    <groupId>org.hibernate</groupId>
 		    <artifactId>hibernate-search</artifactId>
@@ -499,28 +511,19 @@
 		
 		<!-- TEST begin -->
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.11</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>1.9.5</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.dbunit</groupId>
 			<artifactId>dbunit</artifactId>
 			<version>2.4.8</version>
-			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
 			<version>${spring.version}</version>
-			<scope>test</scope>
 		</dependency>
 		<!-- TEST end -->
 		
@@ -557,7 +560,7 @@
 				<artifactId>maven-eclipse-plugin</artifactId>
 				<version>2.9</version>
 				<configuration>
-					<downloadSources>true</downloadSources>
+					<downloadSources>false</downloadSources>
 					<downloadJavadocs>false</downloadJavadocs>
 					<wtpversion>2.0</wtpversion>
 					<!-- 增加设置项目encoding的文件 -->
@@ -636,7 +639,6 @@
         				<version>1.7</version>
         				<configuration>
               				<target>
-              				    
 								<property name="sql.type" value="mysql" />
 								<property name="dbunit.datatype" value="org.dbunit.ext.mysql.MySqlDataTypeFactory" />
 								
@@ -644,9 +646,12 @@
 								<property name="dbunit.datatype" value="org.dbunit.ext.oracle.Oracle10DataTypeFactory" /> -->
 																
 								<property file="src/main/resources/application.properties" />
-                				<sql driver="${jdbc.driver}" url="${jdbc.url}" userid="${jdbc.username}" password="${jdbc.password}" onerror="continue">
+                				<sql driver="${jdbc.driver}" url="${jdbc.url}" userid="${jdbc.username}" password="${jdbc.password}" onerror="continue" encoding="utf-8">
 									<classpath refid="maven.test.classpath" />
 									<transaction src="bin/refresh-db/${sql.type}/schema.sql"/>
+									<transaction src="bin/refresh-db/activiti${activiti.version}/database/create/activiti.${sql.type}.create.engine.sql"/>
+									<transaction src="bin/refresh-db/activiti${activiti.version}/database/create/activiti.${sql.type}.create.history.sql"/>
+									<transaction src="bin/refresh-db/activiti${activiti.version}/database/create/activiti.${sql.type}.create.identity.sql"/>
 								</sql>
 								
 								<taskdef name="dbunit" classname="org.dbunit.ant.DbUnitTask" classpathref="maven.test.classpath" />
